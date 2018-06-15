@@ -15,6 +15,7 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
     var captureDevice:AVCaptureDevice?
     var videoPreviewLayer:AVCaptureVideoPreviewLayer?
     var captureSession:AVCaptureSession?
+    var onOffTorch: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -58,6 +59,14 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         codeLabel.heightAnchor.constraint(equalToConstant: 50).isActive = true
         codeLabel.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
         
+        // Setup torch button layout
+        view.addSubview(torchButton)
+        torchButton.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.5).isActive = true
+        torchButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        torchButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        //torchButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50).isActive = true
+        torchButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -75).isActive = true
+        
     }
 
     override func didReceiveMemoryWarning() {
@@ -80,6 +89,20 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         codeFrame.translatesAutoresizingMaskIntoConstraints = false
         return codeFrame
     }()
+    
+    lazy var torchButton:UIButton = {
+        let torchButton = UIButton(type: .system)
+        torchButton.setTitle("🔦", for: .normal)
+        torchButton.setTitleColor(.black, for: .normal)
+        torchButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
+        torchButton.backgroundColor = .white
+        torchButton.layer.cornerRadius = 25
+        torchButton.addTarget(self, action: #selector(toggleTorch), for: .touchUpInside)
+        torchButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        return torchButton
+    }()
+    
     
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         if metadataObjects.count == 0 {
@@ -125,6 +148,30 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         detailsViewController.scannedCode = scannedCode
         //navigationController?.pushViewController(detailsViewController, animated: true)
         present(detailsViewController, animated: true, completion: nil)
+    }
+    
+    @objc func toggleTorch() {
+        onOffTorch = !onOffTorch
+        guard let device = AVCaptureDevice.default(for: AVMediaType.video)
+            else {return}
+        
+        if device.hasTorch {
+            do {
+                try device.lockForConfiguration()
+                
+                if onOffTorch == true {
+                    device.torchMode = .on
+                } else {
+                    device.torchMode = .off
+                }
+                
+                device.unlockForConfiguration()
+            } catch {
+                print("Torch could not be used")
+            }
+        } else {
+            print("Torch is not available")
+        }
     }
 
 }
